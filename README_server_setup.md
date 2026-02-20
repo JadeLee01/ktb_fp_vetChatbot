@@ -26,12 +26,14 @@ conda activate vetChatbot
 pip install -r requirements.txt
 ```
 
-### 4. HuggingFace 토큰 설정 및 테스트 실행
-Llama-3, Exaone 등 라이선스가 걸려있는 고성능 오픈소스 모델들을 다운받기 위해 터미널에 사용자님의 허깅페이스 토큰을 주입합니다.
+### 4. 환경 변수 세팅 및 테스트 실행
+`.env` 파일을 만들고 HuggingFace 토큰을 설정합니다.
 ```bash
-# 본인의 HuggingFace 토큰으로 교체하세요. (주의: " " 안에 넣기)
-export HF_TOKEN="hf_여기에_토큰을_입력하세요"
+# 서버 환경에서 .env 파일 생성
+echo "HF_TOKEN=hf_본인토큰여기에" > .env
+```
 
 # 벤치마크 스크립트 실행 (GPU가 모델들을 다운로드 받고 테스트를 시작합니다!)
+```bash
 python benchmark_llm.py
 ```
