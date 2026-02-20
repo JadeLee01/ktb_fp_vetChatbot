@@ -1,0 +1,14 @@
+# Environments
+.env
+venv/
+__pycache__/
+
+# Database & Data
+chroma_vet_db/
+Sample/
+processed_qa_data.jsonl
+processed_qa_data.csv
+*.pdf
+
+# OS generated files
+.DS_Store
