@@ -48,18 +48,21 @@ echo "====================================================="
 ./aihubshell -mode d -datasetkey $DATASET_KEY -aihubapikey "$AIHUB_API_KEY"
 
 echo "====================================================="
-echo "📦 3. 데이터 다운로드, 병합, 압축해제가 aihubshell에 의해 자동 완료 대기"
+echo "📦 3. 데이터 다운로드 및 병합(part -> zip) 완료!"
+echo "AI-Hub 쉘이 zip 파일로만 병합해 두었으므로, 수동으로 전체 압축 해제를 진행합니다..."
 echo "====================================================="
-# aihubshell이 다운로드 완료 후 "병합, 압축해제, 압축파일 제거"까지 알아서 진행합니다.
-# 수십 GB의 경우 압축 해제에 시간이 조금 걸릴 수 있습니다.
+
+# 모든 하위 폴더의 .zip 파일들을 찾아 추출용 폴더에 모조리 압축 해제합니다.
+mkdir -p extracted_data
+find . -name "*.zip" -exec unzip -o {} -d ./extracted_data \;
 
 echo "====================================================="
 echo "⚙️ 4. 데이터 전처리 파이프라인(preprocess.py) 즉시 가동!"
 echo "====================================================="
 
 cd .. # 원래 작업 폴더로 복귀
-# aihubshell이 압축을 푼 로컬 폴더(aihub_raw_data)를 타겟으로 전처리 스크립트 실행
-python3 preprocess.py --input_dir "$DOWNLOAD_DIR" --output_name "processed_qa_data"
+# 압축이 풀린 로컬 폴더(aihub_raw_data/extracted_data)를 타겟으로 전처리 스크립트 실행
+python3 preprocess.py --input_dir "$DOWNLOAD_DIR/extracted_data" --output_name "processed_qa_data"
 
 echo "====================================================="
 echo "🎉 모든 작업 완료! 학습용 데이터셋(processed_qa_data.jsonl)이 성공적으로 생성되었습니다!"
