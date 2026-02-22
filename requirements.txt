@@ -9,3 +9,7 @@ accelerate
 torch
 transformers
 autoawq
+peft
+trl
+bitsandbytes
+datasets
