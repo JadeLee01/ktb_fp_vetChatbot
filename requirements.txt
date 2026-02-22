@@ -6,3 +6,5 @@ chromadb
 tiktoken
 jq
 accelerate
+torch
+transformers
