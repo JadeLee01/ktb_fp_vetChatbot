@@ -12,8 +12,8 @@ load_dotenv(override=True)
 # 테스트할 HuggingFace 모델 ID 리스트 (한국어 특화 7~8B 모델 3대장)
 MODEL_IDS = [
     "Qwen/Qwen2.5-7B-Instruct",
-    # "meta-llama/Meta-Llama-3.1-8B-Instruct", # Llama는 HF에서 라이선스 승인 필요
-    # "LGAI-EXAONE/EXAONE-3.0-7.8B-Instruct"   # EXAONE도 통상적으로 HF 라이선스 동의 필요
+    "meta-llama/Meta-Llama-3.1-8B-Instruct", # Llama는 HF에서 라이선스 승인 필요
+    "LGAI-EXAONE/EXAONE-3.0-7.8B-Instruct"   # EXAONE도 통상적으로 HF 라이선스 동의 필요
 ]
 
 # 수의사 봇 벤치마크용 테스트 질문 세트
@@ -43,15 +43,20 @@ def run_benchmark():
         print(f"\n[{model_id}] 모델 다운로드 및 로드 중... (최초 1회 수십 초~분 소요)")
         
         try:
-            # 1. 토크나이저 및 모델 명시적 로드 (Gated Repo의 권한 누락 방지)
+            # 1. 토크나이저 및 모델 명시적 로드 (Gated Repo의 권한 누락 방지 및 커스텀 코드 허용)
             hf_token = os.environ.get("HF_TOKEN")
-            tokenizer = AutoTokenizer.from_pretrained(model_id, token=hf_token)
+            tokenizer = AutoTokenizer.from_pretrained(
+                model_id, 
+                token=hf_token,
+                trust_remote_code=True
+            )
             
             model = AutoModelForCausalLM.from_pretrained(
                 model_id,
                 torch_dtype=torch.bfloat16,
                 device_map="auto",
-                token=hf_token
+                token=hf_token,
+                trust_remote_code=True
             )
             
             generator = pipeline(
