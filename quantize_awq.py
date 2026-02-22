@@ -44,4 +44,22 @@ model.save_quantized(quant_path)
 tokenizer.save_pretrained(quant_path)
 
 print("\n🎉 양자화 성공! 이제 이 폴더의 용량을 확인해보세요. (약 28GB -> 약 9GB로 축소되었을 것입니다.)")
-print("이제 운영 서버에서는 이 가벼워진 로컬 폴더 경로를 불러와서 서비스하면 됩니다!")
+
+# 4. Hugging Face 클라우드에 영구 백업 및 배포 (Push to Hub)
+from huggingface_hub import HfApi
+
+hf_repo_name = "20-team-daeng-ddang-ai/vet-chat" 
+path_in_repo = "Qwen2.5-14B/14B-Q" # 양자화 모델(Q) 전용 폴더
+
+print(f"\n☁️ Hugging Face Hub '{hf_repo_name}' 의 '{path_in_repo}' 폴더에 업로드를 시작합니다...")
+
+api = HfApi(token=os.environ.get("HF_TOKEN"))
+api.create_repo(repo_id=hf_repo_name, private=True, exist_ok=True)
+
+api.upload_folder(
+    folder_path=quant_path,
+    repo_id=hf_repo_name,
+    path_in_repo=path_in_repo,
+    commit_message="Upload 14B-Q (AWQ) model"
+)
+print(f"🎉 클라우드의 '{path_in_repo}' 폴더에 완벽하게 백업 및 업로드 성공! 이제 운영 서버에서는 이 경로를 통해 다운로드하세요.")

@@ -80,12 +80,23 @@ trainer.model.save_pretrained("./lora-qwen-14b-final")
 tokenizer.save_pretrained("./lora-qwen-14b-final")
 print("✅ 일반 LoRA 학습 완료 및 어댑터가 로컬에 저장되었습니다!")
 
-# 7. Hugging Face 클라우드에 영구 백업 및 배포 (Push to Hub)
-# ※ 주의: Jade0103을 본인 계정명으로 변경하거나 그대로 사용
-hf_repo_name = "Jade0103/Qwen2.5-14B-Vet-LoRA" 
-print(f"\n☁️ Hugging Face Hub '{hf_repo_name}' 비공개(Private) 저장소에 업로드를 시작합니다...")
+# 7. Hugging Face 클라우드에 영구 백업 및 특수 폴더 구조로 배포 (Push to Hub)
+from huggingface_hub import HfApi
 
-# 모델과 토크나이저를 허깅페이스 내 계정으로 푸시 (토큰 권한 필요)
-trainer.model.push_to_hub(hf_repo_name, private=True, token=os.environ.get("HF_TOKEN"))
-tokenizer.push_to_hub(hf_repo_name, private=True, token=os.environ.get("HF_TOKEN"))
-print("🎉 클라우드에 모델 백업 및 업로드 성공! 이제 어디서든 1줄의 코드로 다운받아 쓸 수 있습니다.")
+hf_repo_name = "20-team-daeng-ddang-ai/vet-chat" 
+path_in_repo = "Qwen2.5-14B/14B-LoRA" # ablation study를 위한 전용 폴더 트리
+
+print(f"\n☁️ Hugging Face Hub '{hf_repo_name}' 의 '{path_in_repo}' 폴더에 업로드를 시작합니다...")
+
+api = HfApi(token=os.environ.get("HF_TOKEN"))
+# 레포지토리가 없으면 비공개로 자동 생성
+api.create_repo(repo_id=hf_repo_name, private=True, exist_ok=True)
+
+# 로컬에 저장된 가중치 폴더 전체를 HF 레포지토리의 특정 하위 경로로 쏙 밀어넣기
+api.upload_folder(
+    folder_path="./lora-qwen-14b-final",
+    repo_id=hf_repo_name,
+    path_in_repo=path_in_repo,
+    commit_message="Upload 14B-LoRA model"
+)
+print(f"🎉 클라우드의 '{path_in_repo}' 폴더에 완벽하게 백업 및 업로드 성공!")
