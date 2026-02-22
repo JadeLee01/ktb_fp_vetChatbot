@@ -79,3 +79,13 @@ trainer.train()
 trainer.model.save_pretrained("./lora-qwen-14b-final")
 tokenizer.save_pretrained("./lora-qwen-14b-final")
 print("✅ 일반 LoRA 학습 완료 및 어댑터가 로컬에 저장되었습니다!")
+
+# 7. Hugging Face 클라우드에 영구 백업 및 배포 (Push to Hub)
+# ※ 주의: Jade0103을 본인 계정명으로 변경하거나 그대로 사용
+hf_repo_name = "Jade0103/Qwen2.5-14B-Vet-LoRA" 
+print(f"\n☁️ Hugging Face Hub '{hf_repo_name}' 비공개(Private) 저장소에 업로드를 시작합니다...")
+
+# 모델과 토크나이저를 허깅페이스 내 계정으로 푸시 (토큰 권한 필요)
+trainer.model.push_to_hub(hf_repo_name, private=True, token=os.environ.get("HF_TOKEN"))
+tokenizer.push_to_hub(hf_repo_name, private=True, token=os.environ.get("HF_TOKEN"))
+print("🎉 클라우드에 모델 백업 및 업로드 성공! 이제 어디서든 1줄의 코드로 다운받아 쓸 수 있습니다.")
