@@ -97,12 +97,25 @@ def run_benchmark():
                 # 모델이 뱉은 순수 응답만 추출 (프롬프트 부분 제외)
                 generated_text = outputs[0]["generated_text"][len(prompt):].strip()
                 
+                # 객관적 지표 1: TPS (Tokens Per Second - 초당 텍스트 생성 속도)
+                # 토크나이저로 생성된 텍스트를 다시 쪼개어 길이 계산 (대략적인 실제 토큰 수)
+                generated_tokens_count = len(tokenizer.encode(generated_text))
+                tps = round(generated_tokens_count / latency, 2) if latency > 0 else 0
+                
+                # 객관적 지표 2: VRAM Peak 사용량 (향후 운영 서버 배포 가능성 증명용)
+                peak_vram_gb = round(torch.cuda.max_memory_allocated() / (1024**3), 2)
+                
                 model_results.append({
                     "question": question,
                     "answer": generated_text,
-                    "latency_sec": latency
+                    "latency_sec": latency,
+                    "tokens_per_sec_TPS": tps,  # 속도 지표 (높을수록 좋음)
+                    "peak_vram_GB": peak_vram_gb # 메모리 지표 (낮을수록 저가 서버에 배포 가능)
                 })
-                print(f"  ✅ 완료 ({latency}초 소요)")
+                print(f"  ✅ 완료 (시간: {latency}초 | 속도: {tps} Tokens/sec | VRAM: {peak_vram_gb} GB)")
+                
+                # 다음 측정을 위해 메모리 초기화
+                torch.cuda.reset_peak_memory_stats()
                 
             results[model_id] = model_results
             
