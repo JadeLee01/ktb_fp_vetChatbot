@@ -6,7 +6,8 @@ from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 from trl import SFTTrainer
 
 model_id = "Qwen/Qwen2.5-14B-Instruct"
-dataset_path = "processed_qa_data.jsonl"
+train_data_path = "processed_qa_data_train.jsonl"
+val_data_path = "processed_qa_data_val.jsonl"
 
 print("🚀 [QLoRA 4-Bit] 24GB 단일 GPU 환경 생존용 가성비 파인튜닝 시작!")
 print("거대한 14B 뇌세포를 4비트로 꽝꽝 얼린(양자화) 채로 가져와서 VRAM을 단 10GB로 줄이고, 그 위에 LoRA를 학습합니다.")
@@ -45,7 +46,7 @@ model = get_peft_model(model, lora_config)
 model.print_trainable_parameters() 
 
 # 3. 데이터 로드 및 포맷팅 (동일함)
-dataset = load_dataset("json", data_files=dataset_path, split="train")
+dataset = load_dataset("json", data_files={"train": train_data_path, "validation": val_data_path})
 
 def format_prompts(examples):
     texts = []
@@ -59,6 +60,8 @@ def format_prompts(examples):
     return {"text": texts}
 
 dataset = dataset.map(format_prompts, batched=True)
+train_dataset = dataset["train"]
+val_dataset = dataset["validation"]
 
 # 4. 메모리 쥐어짜기 최적화 학습 설정
 training_args = TrainingArguments(
@@ -68,6 +71,8 @@ training_args = TrainingArguments(
     learning_rate=2e-4,
     logging_steps=10,
     max_steps=100, 
+    eval_strategy="steps",
+    eval_steps=50,
     save_steps=50,
     bf16=True, 
     optim="paged_adamw_32bit", # QLoRA에서 OOM(메모리 터짐)을 막는 페이징 최적화 함수 필수!
@@ -76,7 +81,8 @@ training_args = TrainingArguments(
 
 trainer = SFTTrainer(
     model=model,
-    train_dataset=dataset,
+    train_dataset=train_dataset,
+    eval_dataset=val_dataset,
     dataset_text_field="text",
     max_seq_length=1024,
     args=training_args,

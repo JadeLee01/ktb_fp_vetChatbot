@@ -11,17 +11,30 @@ def preprocess_data(input_dir, output_jsonl, output_csv):
     json_files = glob.glob(os.path.join(input_dir, "**", "*.json"), recursive=True)
     print(f"📂 총 JSON 파일 발견: {len(json_files)} 개")
     
-    processed_count = 0
+    train_jsonl = output_jsonl.replace(".jsonl", "_train.jsonl")
+    train_csv = output_csv.replace(".csv", "_train.csv")
+    val_jsonl = output_jsonl.replace(".jsonl", "_val.jsonl")
+    val_csv = output_csv.replace(".csv", "_val.csv")
+    
+    train_count = 0
+    val_count = 0
     error_count = 0
     
-    with open(output_jsonl, "w", encoding="utf-8") as f_jsonl, \
-         open(output_csv, "w", encoding="utf-8", newline="") as f_csv:
+    with open(train_jsonl, "w", encoding="utf-8") as f_train_jsonl, \
+         open(train_csv, "w", encoding="utf-8", newline="") as f_train_csv, \
+         open(val_jsonl, "w", encoding="utf-8") as f_val_jsonl, \
+         open(val_csv, "w", encoding="utf-8", newline="") as f_val_csv:
         
-        csv_writer = csv.writer(f_csv)
-        # Write CSV header
-        csv_writer.writerow(["department", "disease", "lifeCycle", "input", "output"])
+        train_writer = csv.writer(f_train_csv)
+        val_writer = csv.writer(f_val_csv)
+        
+        # Write CSV headers
+        train_writer.writerow(["department", "disease", "lifeCycle", "input", "output"])
+        val_writer.writerow(["department", "disease", "lifeCycle", "input", "output"])
         
         for file_path in json_files:
+            # 경로에 Validation이 있으면 검증용, 아니면 기본 학습용
+            is_val = "Validation" in file_path or "validation" in file_path
             try:
                 with open(file_path, "r", encoding="utf-8") as f:
                     data = json.load(f)
@@ -46,20 +59,25 @@ def preprocess_data(input_dir, output_jsonl, output_csv):
                         "question": user_input,
                         "answer": assistant_output
                     }
-                    f_jsonl.write(json.dumps(record, ensure_ascii=False) + "\n")
-                    
-                    # Write CSV for easy viewing in Excel/Numbers
-                    csv_writer.writerow([department, disease, lifeCycle, user_input, assistant_output])
-                    
-                    processed_count += 1
+                    if is_val:
+                        f_val_jsonl.write(json.dumps(record, ensure_ascii=False) + "\n")
+                        val_writer.writerow([department, disease, lifeCycle, user_input, assistant_output])
+                        val_count += 1
+                    else:
+                        f_train_jsonl.write(json.dumps(record, ensure_ascii=False) + "\n")
+                        train_writer.writerow([department, disease, lifeCycle, user_input, assistant_output])
+                        train_count += 1
+                        
             except Exception as e:
                 error_count += 1
                 # print(f"Error processing {file_path}: {e}")
                 
     print(f"✅ Preprocessing complete!")
-    print(f"Successfully processed: {processed_count} files.")
+    print(f"Successfully processed Training: {train_count} files.")
+    print(f"Successfully processed Validation: {val_count} files.")
     print(f"Errors: {error_count} files.")
-    print(f"Outputs saved to: {output_jsonl}, {output_csv}")
+    print(f"Train Outputs: {train_jsonl}, {train_csv}")
+    print(f"Val Outputs: {val_jsonl}, {val_csv}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="AI-Hub 수의학/반려동물 질의응답 데이터셋 전처리 스크립트")

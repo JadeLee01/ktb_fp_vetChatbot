@@ -7,7 +7,8 @@ from trl import SFTTrainer
 
 # 1. 원본 14B 모델 (학습용)
 model_id = "Qwen/Qwen2.5-14B-Instruct"
-dataset_path = "processed_qa_data.jsonl" # AI-Hub 전처리 데이터
+train_data_path = "processed_qa_data_train.jsonl" 
+val_data_path = "processed_qa_data_val.jsonl" 
 
 print("🚀 [원본 14B + LoRA] 고성능 GPU 서버용 일반 파인튜닝 시작!")
 print("H100 2대와 같이 VRAM이 든든한 환경에서 모델 전체를 FP16/BF16으로 올려놓고 LoRA 어댑터를 학습합니다.")
@@ -36,7 +37,7 @@ model = get_peft_model(model, lora_config)
 model.print_trainable_parameters() 
 
 # 4. AI-Hub Q&A 데이터 로드 및 챗봇 템플릿 포맷팅
-dataset = load_dataset("json", data_files=dataset_path, split="train")
+dataset = load_dataset("json", data_files={"train": train_data_path, "validation": val_data_path})
 
 def format_prompts(examples):
     texts = []
@@ -50,6 +51,8 @@ def format_prompts(examples):
     return {"text": texts}
 
 dataset = dataset.map(format_prompts, batched=True)
+train_dataset = dataset["train"]
+val_dataset = dataset["validation"]
 
 # 5. 분산 학습 설정 및 실행
 training_args = TrainingArguments(
@@ -59,6 +62,8 @@ training_args = TrainingArguments(
     learning_rate=2e-4,
     logging_steps=10,
     max_steps=100, # 데모용으로 100스텝만 진행 (실제론 epochs 설정)
+    eval_strategy="steps", # 학습 중 Validation 평가 활성화
+    eval_steps=50,
     save_steps=50,
     bf16=True, # H100의 특권인 bfloat16 연산 사용
     report_to="none"
@@ -66,7 +71,8 @@ training_args = TrainingArguments(
 
 trainer = SFTTrainer(
     model=model,
-    train_dataset=dataset,
+    train_dataset=train_dataset,
+    eval_dataset=val_dataset,
     dataset_text_field="text",
     max_seq_length=1024,
     args=training_args,
