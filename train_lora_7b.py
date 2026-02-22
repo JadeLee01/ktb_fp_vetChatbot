@@ -68,13 +68,13 @@ sft_config = SFTConfig(
     bf16=True, # H100의 특권인 bfloat16 연산 사용
     report_to="none",
     dataset_text_field="text",
-    max_seq_length=1024,
 )
 
 trainer = SFTTrainer(
     model=model,
     train_dataset=train_dataset,
     eval_dataset=val_dataset,
+    max_seq_length=1024,
     args=sft_config,
 )
 
