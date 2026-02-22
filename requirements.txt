@@ -7,4 +7,6 @@ tiktoken
 jq
 accelerate
 torch
-transformersautoawq
+transformers
+autoawq
+autoawq
