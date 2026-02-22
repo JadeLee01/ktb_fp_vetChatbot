@@ -78,13 +78,13 @@ sft_config = SFTConfig(
     optim="paged_adamw_32bit", # QLoRA에서 OOM(메모리 터짐)을 막는 페이징 최적화 함수 필수!
     report_to="none",
     dataset_text_field="text",
+    max_length=1024,
 )
 
 trainer = SFTTrainer(
     model=model,
     train_dataset=train_dataset,
     eval_dataset=val_dataset,
-    max_seq_length=1024,
     args=sft_config,
 )
 
