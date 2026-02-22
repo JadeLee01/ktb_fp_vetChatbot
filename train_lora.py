@@ -1,9 +1,9 @@
 import os
 import torch
 from datasets import load_dataset
-from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments
+from transformers import AutoModelForCausalLM, AutoTokenizer
 from peft import LoraConfig, get_peft_model
-from trl import SFTTrainer
+from trl import SFTTrainer, SFTConfig
 
 # 1. 원본 14B 모델 (학습용)
 model_id = "Qwen/Qwen2.5-14B-Instruct"
@@ -55,7 +55,7 @@ train_dataset = dataset["train"]
 val_dataset = dataset["validation"]
 
 # 5. 분산 학습 설정 및 실행
-training_args = TrainingArguments(
+sft_config = SFTConfig(
     output_dir="./lora-qwen-14b-aihub",
     per_device_train_batch_size=2,
     gradient_accumulation_steps=4,
@@ -66,16 +66,16 @@ training_args = TrainingArguments(
     eval_steps=50,
     save_steps=50,
     bf16=True, # H100의 특권인 bfloat16 연산 사용
-    report_to="none"
+    report_to="none",
+    dataset_text_field="text",
+    max_seq_length=1024,
 )
 
 trainer = SFTTrainer(
     model=model,
     train_dataset=train_dataset,
     eval_dataset=val_dataset,
-    dataset_text_field="text",
-    max_seq_length=1024,
-    args=training_args,
+    args=sft_config,
 )
 
 print("\n데이터로 학습이 시작됩니다...")

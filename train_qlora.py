@@ -1,9 +1,9 @@
 import os
 import torch
 from datasets import load_dataset
-from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments, BitsAndBytesConfig
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
-from trl import SFTTrainer
+from trl import SFTTrainer, SFTConfig
 
 model_id = "Qwen/Qwen2.5-14B-Instruct"
 train_data_path = "processed_qa_data_train.jsonl"
@@ -64,7 +64,7 @@ train_dataset = dataset["train"]
 val_dataset = dataset["validation"]
 
 # 4. 메모리 쥐어짜기 최적화 학습 설정
-training_args = TrainingArguments(
+sft_config = SFTConfig(
     output_dir="./qlora-qwen-14b-aihub",
     per_device_train_batch_size=1, # 서버가 터지지 않게 VRAM 배치를 1로 최소화
     gradient_accumulation_steps=8, # 대신 8번 모아서 연산 (배치의 부족함 벌충)
@@ -76,16 +76,16 @@ training_args = TrainingArguments(
     save_steps=50,
     bf16=True, 
     optim="paged_adamw_32bit", # QLoRA에서 OOM(메모리 터짐)을 막는 페이징 최적화 함수 필수!
-    report_to="none"
+    report_to="none",
+    dataset_text_field="text",
+    max_seq_length=1024,
 )
 
 trainer = SFTTrainer(
     model=model,
     train_dataset=train_dataset,
     eval_dataset=val_dataset,
-    dataset_text_field="text",
-    max_seq_length=1024,
-    args=training_args,
+    args=sft_config,
 )
 
 print("\n(기대) 거대한 14B가 드디어 작은 서버에서도 학습을 시작합니다...")
