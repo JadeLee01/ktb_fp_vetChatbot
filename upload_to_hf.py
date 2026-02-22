@@ -1,6 +1,10 @@
 import os
 import argparse
+from dotenv import load_dotenv
 from huggingface_hub import HfApi
+
+# .env 파일에 작성된 HF_TOKEN 등을 환경변수로 우선 로드합니다.
+load_dotenv()
 
 def upload_model(local_dir, repo_id, path_in_repo):
     token = os.environ.get("HF_TOKEN")
