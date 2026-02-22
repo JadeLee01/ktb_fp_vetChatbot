@@ -3,13 +3,14 @@ import json
 import csv
 import glob
 
-import argparse
-
-def preprocess_data(input_dir, output_jsonl, output_csv):
-    print(f"🔍 입력 폴더 탐색 시작: {input_dir}")
-    # json 파일들을 하위 폴더 끝까지 다 뒤져서 찾습니다.
-    json_files = glob.glob(os.path.join(input_dir, "**", "*.json"), recursive=True)
-    print(f"📂 총 JSON 파일 발견: {len(json_files)} 개")
+def preprocess_data():
+    base_dir = "/Users/jacob.lee/ktb_fp_vetChatbot_dev/Sample/02.라벨링데이터/질의응답데이터"
+    output_jsonl = "processed_qa_data.jsonl"
+    output_csv = "processed_qa_data.csv"
+    
+    # Get all json files recursively
+    json_files = glob.glob(os.path.join(base_dir, "**", "*.json"), recursive=True)
+    print(f"Total JSON files found: {len(json_files)}")
     
     processed_count = 0
     error_count = 0
@@ -62,13 +63,4 @@ def preprocess_data(input_dir, output_jsonl, output_csv):
     print(f"Outputs saved to: {output_jsonl}, {output_csv}")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="AI-Hub 수의학/반려동물 질의응답 데이터셋 전처리 스크립트")
-    parser.add_argument("--input_dir", type=str, required=True, help="AI-Hub에서 다운로드 받은 '02.라벨링데이터/질의응답데이터' 등 JSON이 있는 최상위 폴더 경로")
-    parser.add_argument("--output_name", type=str, default="processed_qa_data", help="출력될 파일명 (확장자 제외, 예: processed_qa_data)")
-    
-    args = parser.parse_args()
-    
-    out_jsonl = args.output_name + ".jsonl"
-    out_csv = args.output_name + ".csv"
-    
-    preprocess_data(args.input_dir, out_jsonl, out_csv)
+    preprocess_data()
