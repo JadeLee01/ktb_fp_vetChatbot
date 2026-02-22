@@ -5,8 +5,8 @@ import torch
 from dotenv import load_dotenv
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
-# .env 파일 로드 (HuggingFace 토큰 가져오기 위함)
-load_dotenv()
+# .env 파일 로드 (서버의 글로벌 토큰을 무시하고 현재 폴더의 토큰을 최우선으로 가져오기 위함)
+load_dotenv(override=True)
 
 # 테스트할 HuggingFace 모델 ID 리스트 (한국어 특화 7~8B 모델 3대장)
 MODEL_IDS = [
