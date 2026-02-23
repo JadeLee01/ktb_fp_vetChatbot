@@ -56,6 +56,7 @@ oneshot(
     dataset=ds,
     recipe=recipe,
     max_seq_length=1024,
+    processor=tokenizer,
 )
 
 print(f"\n💾 [3단계] 다이어트에 성공한 4-Bit 양자화 모델을 로컬에 저장합니다: {quant_path}")
