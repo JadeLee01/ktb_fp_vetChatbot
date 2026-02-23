@@ -2,7 +2,8 @@ import os
 import torch
 from transformers import AutoTokenizer
 from llmcompressor.modifiers.quantization import GPTQModifier
-from llmcompressor.transformers import SparseAutoModelForCausalLM, oneshot
+from llmcompressor.transformers import llmcompressor_oneshot as oneshot
+from transformers import AutoModelForCausalLM
 from huggingface_hub import HfApi
 from dotenv import load_dotenv
 
@@ -17,8 +18,8 @@ quant_path = "./qwen-14b-instruct-lora-4bit-gptq" # vLLM 공식 양자화기(llm
 print(f"🚀 [1단계] 새로운 공식 4-bit 양자화 라이브러리(llmcompressor)로 모델({model_id})을 메모리로 불러옵니다...")
 print("이 방식은 최신 transformers 버전과 100% 호환되며, 버전 꼬임 에러가 발생하지 않습니다!")
 
-# llmcompressor의 SparseAutoModelForCausalLM 클래스로 원본 모델 로드
-model = SparseAutoModelForCausalLM.from_pretrained(
+# llmcompressor의 호환을 위한 AutoModelForCausalLM 사용 로드
+model = AutoModelForCausalLM.from_pretrained(
     model_id, 
     device_map="auto", 
     torch_dtype="auto", 
