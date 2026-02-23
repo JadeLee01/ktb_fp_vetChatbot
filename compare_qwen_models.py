@@ -8,19 +8,26 @@ from peft import PeftModel
 # 🛑 아래의 경로들을 실제 서버에 저장된 7B, 14B 모델/어댑터 경로로 수정하세요 🛑
 # =========================================================================
 MODELS_TO_TEST = {
-    "Qwen-7B-LoRA": {
-        "type": "lora",
-        "base_model": "Qwen/Qwen2.5-7B-Instruct",
-        "adapter_path": "./lora-qwen-7b-final"
-    },
+    # 7B는 구버전 transformers 캐시 에러가 있으므로 생략합니다 (어차피 성능 미달)
     "Qwen-14B-LoRA": {
         "type": "lora",
         "base_model": "Qwen/Qwen2.5-14B-Instruct",
         "adapter_path": "./lora-qwen-14b-final"
     },
-    "Qwen-14B-Quantized": {
+    "Qwen-14B-Merged": {
+        "type": "quantized", 
+        "model_path": "./qwen-14b-instruct-lora-merged",
+        "base_model": "Qwen/Qwen2.5-14B-Instruct"
+    },
+    "Qwen-14B-4Bit-GPTQ": {
         "type": "quantized",
-        "model_path": "./qwen-14b-instruct-8bit-custom"
+        "model_path": "./qwen-14b-instruct-lora-4bit-gptq",
+        "base_model": "Qwen/Qwen2.5-14B-Instruct"
+    },
+    "Qwen-14B-8Bit": {
+        "type": "quantized",
+        "model_path": "./qwen-14b-instruct-8bit-custom",
+        "base_model": "Qwen/Qwen2.5-14B-Instruct"
     }
 }
 
@@ -34,7 +41,7 @@ TEST_QUESTIONS = [
 SYSTEM_PROMPT = "당신은 '댕동여지도' 서비스의 친절하고 전문적인 10년 차 수의사 챗봇입니다. 사용자의 질문에 답변해 주세요."
 
 def load_model_and_tokenizer(model_info):
-    model_type = model_info["type"]
+    model_type = model_info.get("type", "")
     
     if model_type == "lora":
         # LoRA 로드 방식: Base 모델 로드 후 PeftModel로 어댑터 결합
@@ -47,12 +54,17 @@ def load_model_and_tokenizer(model_info):
         model = PeftModel.from_pretrained(base_model, model_info["adapter_path"])
         
     elif model_type == "quantized":
-        # 양자화 모델 로드 방식: 양자화 폴더 자체를 다이렉트로 로드
-        tokenizer = AutoTokenizer.from_pretrained(model_info["model_path"])
+        # 양자화 및 병합 모델 로드 방식
+        # Tokenizer 파싱 버그를 우회하기 위해 항상 원본 base_model의 토크나이저를 사용합니다.
+        base_name = model_info.get("base_model", "Qwen/Qwen2.5-14B-Instruct")
+        tokenizer = AutoTokenizer.from_pretrained(base_name)
         model = AutoModelForCausalLM.from_pretrained(
             model_info["model_path"],
             device_map="auto"
         )
+    else:
+        raise ValueError(f"지원하지 않는 모델 로드 타입입니다: {model_type}")
+        
     return model, tokenizer
 
 def run_comparison():
