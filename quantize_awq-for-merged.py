@@ -1,6 +1,12 @@
 import os
 from awq import AutoAWQForCausalLM
 from transformers import AutoTokenizer
+from huggingface_hub import HfApi
+from dotenv import load_dotenv
+
+# 로컬 .env 파일의 토큰을 최우선으로 로드
+load_dotenv(override=True)
+HF_TOKEN = os.environ.get("HF_TOKEN")
 
 # 1. 병합된 모델과 저장할 퐅더 경로 설정
 model_id = "./qwen-14b-instruct-lora-merged" # 👈 LoRA를 병합한 커스텀 모델 폴더
@@ -20,14 +26,14 @@ print("이 단계는 VRAM을 엄청나게 많이 차지합니다. H100 서버의
 # 모델을 양자화 전용 클래스로 불러옵니다.
 model = AutoAWQForCausalLM.from_pretrained(
     model_id, 
-    token=os.environ.get("HF_TOKEN"), 
+    token=HF_TOKEN, 
     safetensors=True, 
     low_cpu_mem_usage=True
 )
 
 tokenizer = AutoTokenizer.from_pretrained(
     model_id, 
-    token=os.environ.get("HF_TOKEN"), 
+    token=HF_TOKEN, 
     trust_remote_code=True
 )
 
@@ -46,20 +52,20 @@ tokenizer.save_pretrained(quant_path)
 print("\n🎉 양자화 성공! 이제 이 폴더의 용량을 확인해보세요. (약 28GB -> 약 9GB로 축소되었을 것입니다.)")
 
 # 4. Hugging Face 클라우드에 영구 백업 및 배포 (Push to Hub)
-from huggingface_hub import HfApi
-
 hf_repo_name = "20-team-daeng-ddang-ai/vet-chat" 
-path_in_repo = "Qwen2.5-14B/14B-Q" # 양자화 모델(Q) 전용 폴더
+path_in_repo = "Qwen2.5-14B/14B-4bit-merged" # 양자화 모델 전용 폴더
 
 print(f"\n☁️ Hugging Face Hub '{hf_repo_name}' 의 '{path_in_repo}' 폴더에 업로드를 시작합니다...")
 
-api = HfApi(token=os.environ.get("HF_TOKEN"))
-api.create_repo(repo_id=hf_repo_name, private=True, exist_ok=True)
-
-api.upload_folder(
-    folder_path=quant_path,
-    repo_id=hf_repo_name,
-    path_in_repo=path_in_repo,
-    commit_message="Upload 14B-Q (AWQ) model"
-)
-print(f"🎉 클라우드의 '{path_in_repo}' 폴더에 완벽하게 백업 및 업로드 성공! 이제 운영 서버에서는 이 경로를 통해 다운로드하세요.")
+api = HfApi(token=HF_TOKEN)
+try:
+    api.create_repo(repo_id=hf_repo_name, private=True, exist_ok=True)
+    api.upload_folder(
+        folder_path=quant_path,
+        repo_id=hf_repo_name,
+        path_in_repo=path_in_repo,
+        commit_message="Upload 14B-LoRA-AWQ (4-bit) model"
+    )
+    print(f"🎉 클라우드의 '{path_in_repo}' 폴더에 완벽하게 백업 및 업로드 성공! 이제 운영 서버에서는 이 경로를 통해 다운로드하세요.")
+except Exception as e:
+    print(f"❌ 업로드 실패: {e}")
