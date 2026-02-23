@@ -2,7 +2,7 @@ import os
 import torch
 from transformers import AutoTokenizer
 from llmcompressor.modifiers.quantization import GPTQModifier
-from llmcompressor.transformers import oneshot
+from llmcompressor import oneshot
 from transformers import AutoModelForCausalLM
 from huggingface_hub import HfApi
 from dotenv import load_dotenv
