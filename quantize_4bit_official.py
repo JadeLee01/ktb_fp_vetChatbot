@@ -25,7 +25,10 @@ model = AutoModelForCausalLM.from_pretrained(
     torch_dtype="auto", 
     token=HF_TOKEN
 )
-tokenizer = AutoTokenizer.from_pretrained(model_id, token=HF_TOKEN)
+# 토크나이저의 특별 토큰 설정(extra_special_tokens) 파싱 에러를 방지방지하기 위해 
+# 병합된 로컬 폴더 대신 가장 깔끔한 원본 허깅페이스 저장소에서 그대로 가져옵니다. (어차피 어휘 사전은 100% 동일합니다)
+base_model_id = "Qwen/Qwen2.5-14B-Instruct"
+tokenizer = AutoTokenizer.from_pretrained(base_model_id, token=HF_TOKEN)
 
 print("\n⚙️ [2단계] 본격적인 4-Bit 양자화(압축) 작업 시작!")
 print("(이 방식은 AWQ와 유사한 블록 단위(Group Size 128) 4-bit 압축이지만, GPTQ 알고리즘을 사용해 최신 라이브러리 의존성에서 완벽히 자유롭고 서빙(vLLM) 성능이 더 빠릅니다.)")
