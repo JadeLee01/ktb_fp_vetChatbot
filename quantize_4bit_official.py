@@ -41,14 +41,19 @@ recipe = GPTQModifier(
 )
 
 # 양자화 보정용 데이터셋 (가장 일반적인 wikitext 무작위 샘플 사용)
-# [참고] 완벽한 보정을 원하면 우리 챗봇 json 데이터를 넣어도 되지만, 일반적으로 wikitext 샘플 512개면 충분합니다.
+# [참고] 완벽한 보정을 원하면 우리 챗봇 json 데이터를 넣어도 되지만, 일반적으로 단어 덩어리 512개면 충분합니다.
 print("  > Calibration(보정) 작업을 위해 모델을 한 번 쭉 돌려봅니다. (몇 분 소요)")
 from datasets import load_dataset
 ds = load_dataset("wikitext", "wikitext-2-raw-v1", split="train")
+
 def preprocess(example):
     return tokenizer(example["text"], padding=False, truncation=True, max_length=1024)
-ds = ds.map(preprocess, batched=True).filter(lambda x: len(x["input_ids"]) >= 1024)
-ds = ds.select(range(128)) # 128개 샘플만 빠르게 보정
+
+# 짧은 문장(빈 줄 등)은 버리고 100토큰 이상의 의미있는 단어 덩어리만 모읍니다.
+ds = ds.map(preprocess, batched=True).filter(lambda x: len(x["input_ids"]) > 100)
+
+# llmcompressor의 oneshot이 기본적으로 512개의 묶음을 요구하므로 512개를 가져옵니다.
+ds = ds.select(range(512))
 
 # 실제 One-shot 양자화 실행
 oneshot(
