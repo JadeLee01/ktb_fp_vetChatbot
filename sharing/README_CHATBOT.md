@@ -131,6 +131,7 @@ Before running the service, you must prepare the LLM weights and the Vector DB.
 ### B. Vector DB (RAG)
 The Vector DB (`chroma_db`) contains the pre-embedded veterinary knowledge base. 
 **Crucially, this Vector DB must be stored in the `chatbot-service` (the GPU server), NOT the `ai-orchestrator`.**
-- **Why?** The Vector DB is tightly coupled with the LLM inference process (RAG). The `chatbot-service` needs fast, sub-second access to this DB to retrieve context *before* generating the answer. Passing large chunks of retrieved text over the network from the orchestrator to the chatbot service would cause unnecessary latency.
-- **Size**: It is approximately ~265MB, which is very light and perfectly fine to bundle directly within the `chatbot-service` repository or download alongside the model weights.
-- **Action**: Place the `chroma_db` folder (containing SQLite and vector contents) in the `models/` directory of the `chatbot-service`.
+- **Size & Management**: It is approximately ~265MB. Because this is slightly large for standard Git tracking (which often fails or bloats with binary files >100MB), **it is highly recommended to manage the Vector DB on Hugging Face alongside the model weights.**
+- **Repo URL**: `huggingface.co/20-team-daeng-ddang-ai/vet-chat`
+- **Path in Repo**: `chroma_db` (or whichever folder you uploaded it to)
+- **Action**: Download the `chroma_db` folder from Hugging Face and place it in the `models/` directory of the `chatbot-service`.
