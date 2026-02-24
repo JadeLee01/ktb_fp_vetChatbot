@@ -45,7 +45,11 @@ echo "이 작업은 데이터 크기에 따라 수십 분 ~ 수 시간이 소요
 echo "====================================================="
 
 # AI 허브 쉘을 이용한 다운로드 실행
-./aihubshell -mode d -datasetkey $DATASET_KEY -aihubapikey "$AIHUB_API_KEY"
+# 다운로드가 실패(네트워크 오류, 연결 끊김)하더라도 100% 완료될 때까지 계속 이어받기를 시도합니다.
+until ./aihubshell -mode d -datasetkey $DATASET_KEY -aihubapikey "$AIHUB_API_KEY"; do
+    echo "⚠️ 네트워크 오류로 다운로드가 멈췄습니다. 10초 후 이어받기를 재시도합니다..."
+    sleep 10
+done
 
 echo "====================================================="
 echo "📦 3. 데이터 다운로드 및 병합(part -> zip) 완료!"

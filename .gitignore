@@ -12,3 +12,5 @@ processed_qa_data.csv
 
 # OS generated files
 .DS_Store
+*샘플데이터/
+yolo_eye_dataset/
