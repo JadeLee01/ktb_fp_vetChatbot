@@ -13,25 +13,34 @@ CHROMA_DB_DIR = "./chroma_db"
 # 🛑 테스트할 모델 그룹 정의 (이전에 사용하신 폴더 경로들과 동일하게 설정)
 # =========================================================================
 MODELS_TO_TEST = {
+    "Qwen-7B-LoRA": {
+        "type": "lora",
+        "base_model": "Qwen/Qwen2.5-7B-Instruct",
+        "adapter_path": "./lora-qwen-7b-final"
+    },
     "Qwen-14B-LoRA": {
         "type": "lora",
         "base_model": "Qwen/Qwen2.5-14B-Instruct",
         "adapter_path": "./lora-qwen-14b-final"
     },
-    "Qwen-14B-Merged": {
-        "type": "quantized", 
-        "model_path": "./qwen-14b-instruct-lora-merged",
-        "base_model": "Qwen/Qwen2.5-14B-Instruct"
-    },
-    "Qwen-14B-4Bit-GPTQ": {
+    "Qwen-14B-Quantized": {
         "type": "quantized",
-        "model_path": "./qwen-14b-instruct-lora-4bit-gptq",
-        "base_model": "Qwen/Qwen2.5-14B-Instruct"
+        "model_path": "./qwen-14b-instruct-8bit-custom"
     },
-    "Qwen-14B-8Bit": {
-        "type": "quantized",
-        "model_path": "./qwen-14b-instruct-8bit-custom", 
-        "base_model": "Qwen/Qwen2.5-14B-Instruct"
+    "Qwen-14B-LoRA-Quantized-4bit": {
+        "type": "lora-quantized",
+        "base_model": "Qwen/Qwen2.5-14B-Instruct",
+        "adapter_path": "./qwen-14b-instruct-lora-4bit-gptq"
+    },
+    "Qwen-14B-LoRA-Quantized-8bit": {
+        "type": "lora-quantized",
+        "base_model": "Qwen/Qwen2.5-14B-Instruct",
+        "adapter_path": "./qwen-14b-instruct-lora-8bit"
+    },
+    "Qwen-14B-LoRA-Merged": {
+        "type": "lora-merged",
+        "base_model": "Qwen/Qwen2.5-14B-Instruct",
+        "adapter_path": "./qwen-14b-instruct-lora-merged"
     }
 }
 
@@ -68,11 +77,16 @@ def load_model_and_tokenizer(model_info):
         )
         model = PeftModel.from_pretrained(base_model, model_info["adapter_path"])
         
-    elif model_type == "quantized":
+    elif model_type in ["quantized", "lora-quantized", "lora-merged"]:
+        # 양자화 및 병합 모델 로드 방식 (폴더 전체 호출)
         base_name = model_info.get("base_model", "Qwen/Qwen2.5-14B-Instruct")
         tokenizer = AutoTokenizer.from_pretrained(base_name)
+        
+        # 사용자가 정의한 딕셔너리에 따라 경로 Key ('model_path' 또는 'adapter_path') 다르게 읽기
+        target_path = model_info.get("model_path") or model_info.get("adapter_path")
+        
         model = AutoModelForCausalLM.from_pretrained(
-            model_info["model_path"],
+            target_path,
             device_map="auto"
         )
     else:
