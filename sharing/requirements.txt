@@ -7,3 +7,5 @@ peft
 langchain-chroma
 langchain-huggingface
 sentence-transformers
+accelerate
+python-dotenv
