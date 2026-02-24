@@ -124,8 +124,9 @@ Before running the service, you must prepare the LLM weights and the Vector DB.
 ### A. LLM Weights (Hugging Face)
 - **Base Model**: `Qwen/Qwen2.5-7B-Instruct` (Auto-downloaded by Hugging Face `transformers` upon first run).
 - **LoRA Adapter**: The fine-tuned weights for veterinary chat must be downloaded from our Hugging Face repository and placed in the `/models` directory.
-  - **Repo URL**: `huggingface.co/your-org-name/lora-qwen-7b-final` (Update this with your actual Hugging Face repo link)
-  - You can use Git LFS or Python's `huggingface_hub` to download this folder into `/models/lora-qwen-7b-final`.
+  - **Repo URL**: `huggingface.co/20-team-daeng-ddang-ai/vet-chat`
+  - **Path in Repo**: `Qwen2.5-7B/7B-LoRA` (ablation study 폴더 트리 구조)
+  - You can use Git LFS or Python's `huggingface_hub` (`hf_hub_download`) to download this specific folder into `/models/lora-qwen-7b-final`.
 
 ### B. Vector DB (RAG)
 The Vector DB (`chroma_db`) contains the pre-embedded veterinary knowledge base. 
