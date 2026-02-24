@@ -13,11 +13,7 @@ CHROMA_DB_DIR = "./chroma_db"
 # 🛑 테스트할 모델 그룹 정의 (이전에 사용하신 폴더 경로들과 동일하게 설정)
 # =========================================================================
 MODELS_TO_TEST = {
-    "Qwen-7B-LoRA": {
-        "type": "lora",
-        "base_model": "Qwen/Qwen2.5-7B-Instruct",
-        "adapter_path": "./lora-qwen-7b-final"
-    },
+    # 7B 모델은 최신 transformers와 호환되지 않는 구동 방식(AutoAWQ 종속성)의 버그가 있어 제외합니다
     "Qwen-14B-LoRA": {
         "type": "lora",
         "base_model": "Qwen/Qwen2.5-14B-Instruct",
