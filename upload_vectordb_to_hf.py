@@ -1,17 +1,21 @@
 import os
 from huggingface_hub import HfApi, login
+from dotenv import load_dotenv
 
 def upload_chroma_db():
+    # .env 파일에서 환경변수 로드
+    load_dotenv()
+    
     # 저장소 정보 설정
     repo_id = "20-team-daeng-ddang-ai/vet-chat"
     local_folder_path = "./chroma_db"
     repo_folder_path = "chroma_db"  # 허깅페이스 저장소 생성될 폴더 이름
     
-    # HF 토큰 확인
+    # HF 토큰 확인 (.env 파일 우선 확인)
     hf_token = os.getenv("HF_TOKEN")
     if not hf_token:
-        print("⚠️ 환경변수 'HF_TOKEN'이 설정되어 있지 않습니다.")
-        print("터미널에서 'export HF_TOKEN=본인토큰' 을 입력하거나, 아래 로그인 프롬프트를 따르세요.")
+        print("⚠️ .env 파일에 'HF_TOKEN'이 설정되어 있지 않습니다.")
+        print("스크립트 실행 전 .env 파일에 HF_TOKEN=본인토큰 형식으로 추가해주세요.")
         login()
     else:
         login(token=hf_token)
