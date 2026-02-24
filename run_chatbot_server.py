@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
+from peft import PeftModel
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 
@@ -12,18 +13,19 @@ MODEL_ID = "Qwen/Qwen2.5-7B-Instruct"
 
 # TODO: 만약 7B LoRA 병합 모델이 있다면 해당 폴더 경로로 변경하세요.
 # 현재는 실험의 안정성을 위해 허깅페이스 원본 모델을 직접 로드합니다.
-ADAPTER_PATH = "Qwen/Qwen2.5-7B-Instruct" 
-CHROMA_DB_DIR = "./vet_qa_db"
+ADAPTER_PATH = "./lora-qwen-7b-final" 
+CHROMA_DB_DIR = "./chroma_db"
 
 print("Loading 7B Model (16-bit)...")
 tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
 
 # 7B 모델은 16GB 이하 VRAM을 사용하므로, 24GB GPU에서 양자화 없이 16-bit로 넉넉히 돌아갑니다.
-model = AutoModelForCausalLM.from_pretrained(
-    ADAPTER_PATH,  
+base_model = AutoModelForCausalLM.from_pretrained(
+    MODEL_ID,  
     device_map="auto",
     torch_dtype=torch.bfloat16, # Qwen2.5 권장 데이터 타입
 )
+model = PeftModel.from_pretrained(base_model, ADAPTER_PATH)
 
 print("Loading Vector DB...")
 # 2. RAG (Vector DB) 설정

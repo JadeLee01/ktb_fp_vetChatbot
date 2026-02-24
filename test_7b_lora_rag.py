@@ -17,7 +17,7 @@ def main():
     # 7B Base 모델 및 LoRA 어댑터 경로 설정
     BASE_MODEL_ID = "Qwen/Qwen2.5-7B-Instruct"  
     ADAPTER_PATH = "./lora-qwen-7b-final"
-    CHROMA_DB_DIR = "./vet_qa_db"
+    CHROMA_DB_DIR = "./chroma_db"
 
     print("Loading tokenizer...")
     tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL_ID)
