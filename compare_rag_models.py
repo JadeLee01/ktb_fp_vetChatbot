@@ -108,7 +108,12 @@ def run_rag_comparison():
     # 1. RAG용 벡터 DB 등 로드
     try:
         embeddings = HuggingFaceEmbeddings(model_name="jhgan/ko-sroberta-multitask")
-        vectorstore = Chroma(persist_directory=CHROMA_DB_DIR, embedding_function=embeddings)
+        # 🔥 여기서 빌드할 때 썼던 Collection Name을 정확히 적어주지 않으면 비어있는 새 컬렉션이 만들어져 검색이 안 됩니다!
+        vectorstore = Chroma(
+            persist_directory=CHROMA_DB_DIR, 
+            embedding_function=embeddings,
+            collection_name="vet_qa_collection"
+        )
         print("✅ 로컬 RAG (Chroma DB) 로드 성공!")
     except Exception as e:
         print(f"❌ RAG DB를 불러오지 못했습니다. 경로({CHROMA_DB_DIR})를 확인해 주세요. 에러: {e}")
