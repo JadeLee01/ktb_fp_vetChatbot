@@ -49,20 +49,20 @@ def chat_with_vet(request: ChatRequest):
     docs = retriever.invoke(question)
     context_text = "\n".join([doc.page_content for doc in docs])
     
-    # 2. 프롬프트 생성
-    prompt_template = f"""당신은 수의학 전문 AI 챗봇입니다. 아래 제공된 [참고 문서]만을 바탕으로 사용자의 [질문]에 핵심만 간결하게 답변하세요. [참고 문서]에 없는 내용은 지어내지 말고 모른다고 답변하세요.
-
-[참고 문서]
-{context_text}
-
-[질문]
-{question}
-
-[답변]
-"""
+    # 2. 프롬프트 생성 (Qwen Instruct 모델 필수: Chat Template 적용)
+    messages = [
+        {"role": "system", "content": "당신은 수의학 전문 AI 챗봇입니다. 아래 제공된 [참고 문서]만을 바탕으로 사용자의 [질문]에 핵심만 간결하게 답변하세요. [참고 문서]에 없는 내용은 지어내지 말고 모른다고 답변하세요."},
+        {"role": "user", "content": f"[참고 문서]\n{context_text}\n\n[질문]\n{question}"}
+    ]
+    
+    prompt = tokenizer.apply_chat_template(
+        messages, 
+        tokenize=False, 
+        add_generation_prompt=True
+    )
     
     # 3. 모델 추론
-    inputs = tokenizer(prompt_template, return_tensors="pt").to(model.device)
+    inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
     
     with torch.no_grad():
         outputs = model.generate(
