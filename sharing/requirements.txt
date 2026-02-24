@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+pydantic
+torch
+transformers
+peft
+langchain-chroma
+langchain-huggingface
+sentence-transformers
