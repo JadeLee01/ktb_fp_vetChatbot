@@ -3,6 +3,7 @@ from typing import Iterable
 
 from dotenv import load_dotenv
 from langchain_huggingface import HuggingFaceEmbeddings
+from pydantic import PrivateAttr
 
 
 load_dotenv(override=False)
@@ -36,19 +37,22 @@ def resolve_device() -> str:
 
 
 class PrefixedHuggingFaceEmbeddings(HuggingFaceEmbeddings):
+    _query_prefix: str = PrivateAttr(default="")
+    _passage_prefix: str = PrivateAttr(default="")
+
     def __init__(self, *args, query_prefix: str = "", passage_prefix: str = "", **kwargs):
         super().__init__(*args, **kwargs)
-        self.query_prefix = query_prefix
-        self.passage_prefix = passage_prefix
+        self._query_prefix = query_prefix
+        self._passage_prefix = passage_prefix
 
     def _prefix_texts(self, texts: Iterable[str], prefix: str) -> list[str]:
         return [f"{prefix}{text}" if text else prefix.rstrip() for text in texts]
 
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
-        return super().embed_documents(self._prefix_texts(texts, self.passage_prefix))
+        return super().embed_documents(self._prefix_texts(texts, self._passage_prefix))
 
     def embed_query(self, text: str) -> list[float]:
-        return super().embed_query(self._prefix_texts([text], self.query_prefix)[0])
+        return super().embed_query(self._prefix_texts([text], self._query_prefix)[0])
 
 
 def build_embeddings(device: str | None = None) -> PrefixedHuggingFaceEmbeddings:
