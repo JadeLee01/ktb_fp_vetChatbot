@@ -1,41 +1,94 @@
+import argparse
+import json
 import os
-from huggingface_hub import HfApi, login
-from dotenv import load_dotenv
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
 
-def upload_chroma_db():
-    # .env 파일에서 환경변수 로드
-    load_dotenv()
-    
-    # 저장소 정보 설정
-    repo_id = "20-team-daeng-ddang-ai/vet-chat"
-    local_folder_path = "./chroma_db"
-    repo_folder_path = "chroma_db"  # 허깅페이스 저장소 생성될 폴더 이름
-    
-    # HF 토큰 확인 (.env 파일 우선 확인)
+from dotenv import load_dotenv
+from huggingface_hub import HfApi, create_repo
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from sharing.embedding_utils import get_chroma_db_dir, get_embedding_model_id, should_use_e5_prefix
+
+
+def write_manifest(db_dir: Path) -> Path:
+    manifest_path = db_dir / "embedding_manifest.json"
+    model_id = get_embedding_model_id()
+    manifest = {
+        "embedding_model_id": model_id,
+        "use_e5_prefix": should_use_e5_prefix(model_id),
+        "query_prefix": "query: " if should_use_e5_prefix(model_id) else "",
+        "passage_prefix": "passage: " if should_use_e5_prefix(model_id) else "",
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "chroma_collection_name": "vet_qa_collection",
+    }
+    with manifest_path.open("w", encoding="utf-8") as handle:
+        json.dump(manifest, handle, ensure_ascii=False, indent=2)
+    return manifest_path
+
+
+def upload_chroma_db(local_folder_path: str, repo_id: str, repo_folder_path: str, repo_type: str):
+    load_dotenv(override=False)
+
     hf_token = os.getenv("HF_TOKEN")
     if not hf_token:
-        print("⚠️ .env 파일에 'HF_TOKEN'이 설정되어 있지 않습니다.")
-        print("스크립트 실행 전 .env 파일에 HF_TOKEN=본인토큰 형식으로 추가해주세요.")
-        login()
-    else:
-        login(token=hf_token)
-    
-    api = HfApi()
-    
-    print(f"🚀 Vector DB 업로드 시작: {local_folder_path} -> {repo_id}/{repo_folder_path}")
-    print("용량(~265MB)에 따라 수 분 정도 소요될 수 있습니다. 대기해주세요...")
-    
-    try:
-        api.upload_folder(
-            folder_path=local_folder_path,
-            repo_id=repo_id,
-            path_in_repo=repo_folder_path,
-            repo_type="model" # 모델과 같은 저장소를 공유하므로 model 타입 유지
-        )
-        print("✅ 업로드 성공! Hugging Face에서 확인해보세요.")
-        print(f"링크: https://huggingface.co/{repo_id}/tree/main/{repo_folder_path}")
-    except Exception as e:
-        print(f"❌ 업로드 실패: {e}")
+        raise RuntimeError("HF_TOKEN is not set. Add it to .env or export it in the shell.")
+
+    local_path = Path(local_folder_path).resolve()
+    if not local_path.exists() or not local_path.is_dir():
+        raise FileNotFoundError(f"Vector DB directory not found: {local_path}")
+
+    manifest_path = write_manifest(local_path)
+    print(f"Prepared manifest: {manifest_path}")
+
+    create_repo(repo_id=repo_id, token=hf_token, repo_type=repo_type, exist_ok=True)
+    api = HfApi(token=hf_token)
+
+    print(f"🚀 Uploading vector DB: {local_path} -> {repo_id}/{repo_folder_path}")
+    api.upload_folder(
+        folder_path=str(local_path),
+        repo_id=repo_id,
+        path_in_repo=repo_folder_path,
+        repo_type=repo_type,
+        commit_message=f"Upload vector DB for {get_embedding_model_id()}",
+    )
+    print("✅ Upload complete")
+    print(f"https://huggingface.co/{repo_id}/tree/main/{repo_folder_path}")
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Upload a Chroma vector DB folder to Hugging Face.")
+    parser.add_argument(
+        "--local-folder-path",
+        default=get_chroma_db_dir(),
+        help="Local Chroma DB directory to upload.",
+    )
+    parser.add_argument(
+        "--repo-id",
+        required=True,
+        help="Hugging Face repo id, e.g. org/repo-name",
+    )
+    parser.add_argument(
+        "--repo-folder-path",
+        default="chroma_db_e5_base",
+        help="Destination folder inside the HF repo.",
+    )
+    parser.add_argument(
+        "--repo-type",
+        default="model",
+        choices=["model", "dataset", "space"],
+        help="HF repository type.",
+    )
+    return parser.parse_args()
+
 
 if __name__ == "__main__":
-    upload_chroma_db()
+    args = parse_args()
+    upload_chroma_db(
+        local_folder_path=args.local_folder_path,
+        repo_id=args.repo_id,
+        repo_folder_path=args.repo_folder_path,
+        repo_type=args.repo_type,
+    )

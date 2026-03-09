@@ -1,12 +1,16 @@
 import os
 import json
+import sys
+from pathlib import Path
 from dotenv import load_dotenv
 from langchain_community.document_loaders import JSONLoader
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnablePassthrough
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from sharing.embedding_utils import build_embeddings, get_chroma_db_dir, get_embedding_model_id
 
 # Mac 사용자이고 로컬에서 SQLite (ChromaDB 뒷단) 경고 무시
 import warnings
@@ -24,12 +28,9 @@ if "GEMINI_API_KEY" not in os.environ and "GOOGLE_API_KEY" not in os.environ:
     # os.environ["GEMINI_API_KEY"] = "자신의키를 여기에 적으세요"
 
 # 사용할 모델 정의
-EMBEDDING_MODEL = "models/text-embedding-004" # 텍스트를 벡터로 바꾸는 최신 모델 (Langchain-Google-GenAI 패키지에서 자동 매핑)
-# 하지만 langchain_google_genai 버전 이슈로 직접 모델명을 넘길 때는 아래를 사용
-# EMBEDDING_MODEL = "models/gemini-embedding-001" 
 LLM_MODEL = "gemini-2.5-flash" # 실제 생성(대답)하는 모델
-CHROMA_DB_DIR = "./chroma_vet_db" # 로컬 DB 저장소 폴더
-DATAST_FILE = "./processed_qa_data.jsonl" # 아까 합친 샘플 파일
+CHROMA_DB_DIR = get_chroma_db_dir()
+DATAST_FILE = "./temp/processed_qa_data.jsonl" # 아까 합친 샘플 파일
 
 def get_metadata(record: dict, metadata: dict) -> dict:
     """JSONL에서 검색할 때 필요한 메타데이터(부서, 질병 종류 등)를 추출"""
@@ -42,13 +43,17 @@ def build_rag_db():
     print("🔍 1. 기존 DB 확인 중...")
 
     # 로컬 무료 임베딩 모델 (한국어 성능 우수, API 제약 없음)
-    print("⬇️ 로컬 임베딩 모델 로드 중 (최초 1회 다운로드 소요)...")
-    embeddings = HuggingFaceEmbeddings(model_name="jhgan/ko-sroberta-multitask")
+    print(f"⬇️ 로컬 임베딩 모델 로드 중 (최초 1회 다운로드 소요)... {get_embedding_model_id()}")
+    embeddings = build_embeddings()
     
     # 이미 폴더(DB)가 생성되어 있으면 재사용
     if os.path.exists(CHROMA_DB_DIR):
         print(f"✅ {CHROMA_DB_DIR} 폴더 발견. 기존 임베딩 된 DB를 바로 로드합니다.")
-        vectorstore = Chroma(persist_directory=CHROMA_DB_DIR, embedding_function=embeddings)
+        vectorstore = Chroma(
+            persist_directory=CHROMA_DB_DIR,
+            embedding_function=embeddings,
+            collection_name="vet_qa_collection",
+        )
         return vectorstore
         
     print(f"🚀 2. '{DATAST_FILE}' 데이터 벡터 변환 및 로컬 DB 저장 시작...")
@@ -68,7 +73,8 @@ def build_rag_db():
     vectorstore = Chroma.from_documents(
         documents=docs,
         embedding=embeddings,
-        persist_directory=CHROMA_DB_DIR # 폴더에 영구 저장 (다음번엔 바로 로드되도록)
+        persist_directory=CHROMA_DB_DIR, # 폴더에 영구 저장 (다음번엔 바로 로드되도록)
+        collection_name="vet_qa_collection",
     )
     print("✅ DB 생성 완료!")
     return vectorstore

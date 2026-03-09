@@ -3,13 +3,14 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from peft import PeftModel
 from langchain_chroma import Chroma
-from langchain_huggingface import HuggingFaceEmbeddings
+
+from sharing.embedding_utils import build_embeddings, get_chroma_db_dir, get_embedding_model_id
 
 class VetChatbotCore:
-    def __init__(self, base_model_id="Qwen/Qwen2.5-7B-Instruct", adapter_path="models/lora-qwen-7b-final", chroma_db_dir="models/chroma_db"):
+    def __init__(self, base_model_id="Qwen/Qwen2.5-7B-Instruct", adapter_path="models/lora-qwen-7b-final", chroma_db_dir=None):
         self.base_model_id = base_model_id
         self.adapter_path = adapter_path
-        self.chroma_db_dir = chroma_db_dir
+        self.chroma_db_dir = chroma_db_dir or get_chroma_db_dir()
         
         self.tokenizer = None
         self.model = None
@@ -37,7 +38,8 @@ class VetChatbotCore:
             print("⚠️ LoRA Adapter not found. Running with Base Model only.")
 
         print("Loading Vector DB...")
-        embeddings = HuggingFaceEmbeddings(model_name="jhgan/ko-sroberta-multitask")
+        print(f"Embedding model: {get_embedding_model_id()}")
+        embeddings = build_embeddings()
         vectorstore = Chroma(
             persist_directory=self.chroma_db_dir, 
             embedding_function=embeddings,
@@ -132,7 +134,7 @@ if __name__ == "__main__":
     chatbot = VetChatbotCore(
         base_model_id="Qwen/Qwen2.5-7B-Instruct",
         adapter_path="../lora-qwen-7b-final", # local path for testing
-        chroma_db_dir="../chroma_db"        # local path for testing
+        chroma_db_dir="../models/chroma_db_e5_base"        # local path for testing
     )
     
     test_context = {"dog_age_years": 8, "dog_weight_kg": 3, "breed": "포메라니안"}

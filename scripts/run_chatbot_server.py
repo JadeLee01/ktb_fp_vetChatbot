@@ -1,10 +1,18 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
+import sys
+from pathlib import Path
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from peft import PeftModel
 from langchain_chroma import Chroma
-from langchain_huggingface import HuggingFaceEmbeddings
+from dotenv import load_dotenv
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from sharing.embedding_utils import build_embeddings, get_chroma_db_dir, get_embedding_model_id
+
+load_dotenv(override=False)
 
 app = FastAPI()
 
@@ -14,7 +22,7 @@ MODEL_ID = "Qwen/Qwen2.5-7B-Instruct"
 # TODO: 만약 7B LoRA 병합 모델이 있다면 해당 폴더 경로로 변경하세요.
 # 현재는 실험의 안정성을 위해 허깅페이스 원본 모델을 직접 로드합니다.
 ADAPTER_PATH = "./lora-qwen-7b-final" 
-CHROMA_DB_DIR = "./chroma_db"
+CHROMA_DB_DIR = get_chroma_db_dir()
 
 print("Loading 7B Model (16-bit)...")
 tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
@@ -29,25 +37,44 @@ model = PeftModel.from_pretrained(base_model, ADAPTER_PATH)
 
 print("Loading Vector DB...")
 # 2. RAG (Vector DB) 설정
-embeddings = HuggingFaceEmbeddings(model_name="jhgan/ko-sroberta-multitask")
+print(f"Embedding model: {get_embedding_model_id()}")
+embeddings = build_embeddings()
 vectorstore = Chroma(
     persist_directory=CHROMA_DB_DIR, 
     embedding_function=embeddings,
     collection_name="vet_qa_collection"
 )
-retriever = vectorstore.as_retriever(search_kwargs={"k": 2})
 
 # 요청 데이터 형식 정의
 class ChatRequest(BaseModel):
     question: str
+
+
+@app.get("/health")
+def health_check():
+    return {
+        "status": "ok",
+        "model_id": MODEL_ID,
+        "embedding_model_id": get_embedding_model_id(),
+        "chroma_db_dir": CHROMA_DB_DIR,
+    }
 
 @app.post("/chat")
 def chat_with_vet(request: ChatRequest):
     question = request.question
     
     # 1. RAG 기반 문서 검색
-    docs = retriever.invoke(question)
+    docs_and_scores = vectorstore.similarity_search_with_relevance_scores(question, k=2)
+    docs = [doc for doc, _ in docs_and_scores]
     context_text = "\n".join([doc.page_content for doc in docs])
+    citations = []
+    for idx, (doc, score) in enumerate(docs_and_scores, start=1):
+        citations.append({
+            "doc_id": doc.metadata.get("id", f"doc_{idx}"),
+            "title": doc.metadata.get("title", f"수의 QA {idx}"),
+            "score": round(score, 4),
+            "snippet": doc.page_content[:180],
+        })
     
     # 2. 프롬프트 생성 (Qwen Instruct 모델 필수: Chat Template 적용)
     messages = [
@@ -80,7 +107,8 @@ def chat_with_vet(request: ChatRequest):
     return {
         "question": question,
         "answer": response_text,
-        "context_used": context_text
+        "context_used": context_text,
+        "citations": citations,
     }
 
 if __name__ == "__main__":

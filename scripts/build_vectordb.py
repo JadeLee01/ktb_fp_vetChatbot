@@ -1,20 +1,25 @@
 import json
 import os
-from langchain_community.embeddings import HuggingFaceEmbeddings
+import sys
+import argparse
+from pathlib import Path
+
 from langchain_community.vectorstores import Chroma
 from langchain_core.documents import Document
 from tqdm import tqdm
 
-def build_vector_db(jsonl_path="processed_qa_data_train.jsonl", persist_directory="./chroma_db"):
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from sharing.embedding_utils import build_embeddings, get_chroma_db_dir, get_embedding_model_id
+
+def build_vector_db(jsonl_path="temp/processed_qa_data.jsonl", persist_directory=None):
+    persist_directory = persist_directory or get_chroma_db_dir()
     print(f"🚀 Vector DB 구축 시작: {jsonl_path} 데이터를 읽어옵니다...")
-    
-    # 1. 한국어 전용 고성능 임베딩 모델 로드 (HuggingFace)
-    # 이 모델이 한글 텍스트를 AI가 이해할 수 있는 좌표(벡터 숫자)로 변환해줍니다.
-    print("🧠 임베딩 모델(ko-sroberta-multitask) 로드 중...")
-    embeddings = HuggingFaceEmbeddings(
-        model_name="jhgan/ko-sroberta-multitask",
-        model_kwargs={'device': 'cuda'} # GPU가 있으면 cuda, 없으면 cpu
-    )
+
+    os.makedirs(persist_directory, exist_ok=True)
+
+    print(f"🧠 임베딩 모델 로드 중... ({get_embedding_model_id()})")
+    embeddings = build_embeddings()
     
     # 2. JSONL 파일 읽으면서 Document 객체로 변환
     documents = []
@@ -38,8 +43,11 @@ def build_vector_db(jsonl_path="processed_qa_data_train.jsonl", persist_director
         
         # 메타데이터에는 필터링용 태그들을 붙입니다 (나중에 특정 질병만 검색할 때 유용)
         metadata = {
+            "id": f"qa_{len(documents) + 1}",
+            "title": f"[{department}] {disease} 관련 수의 QA",
             "disease": disease,
-            "department": department
+            "department": department,
+            "question": question,
         }
         
         doc = Document(page_content=page_content, metadata=metadata)
@@ -60,7 +68,22 @@ def build_vector_db(jsonl_path="processed_qa_data_train.jsonl", persist_director
     print(f"🎉 RAG를 위한 Vector DB 구축 완료! 저장 위치: {persist_directory}")
     print("이제 챗봇 API 서버에서 이 폴더를 불러와 유사한 증상을 검색할 수 있습니다!")
 
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Build a Chroma vector DB with the configured embedding model.")
+    parser.add_argument(
+        "--jsonl-path",
+        default="temp/processed_qa_data.jsonl",
+        help="Source JSONL file path.",
+    )
+    parser.add_argument(
+        "--persist-directory",
+        default=None,
+        help="Target Chroma DB directory. Defaults to CHROMA_DB_DIR or project default.",
+    )
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
-    # 방금 전처리한 Train 데이터(본학습 데이터)를 벡터 DB에 넣습니다.
-    # Val 데이터는 굳이 DB에 넣을 필요는 없지만 원하시면 넣어도 됩니다.
-    build_vector_db(jsonl_path="processed_qa_data_train.jsonl")
+    args = parse_args()
+    build_vector_db(jsonl_path=args.jsonl_path, persist_directory=args.persist_directory)

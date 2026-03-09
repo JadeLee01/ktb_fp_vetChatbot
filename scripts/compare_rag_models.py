@@ -1,13 +1,21 @@
 import time
 import json
+import sys
+from pathlib import Path
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 from peft import PeftModel
 from langchain_community.vectorstores import Chroma
-from langchain_huggingface import HuggingFaceEmbeddings
+from dotenv import load_dotenv
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from sharing.embedding_utils import build_embeddings, get_chroma_db_dir, get_embedding_model_id
+
+load_dotenv(override=False)
 
 # 🛑 로컬에 이미 생성된 Chroma DB 경로 (사전에 build_vectordb.py 등으로 생성해 두어야 합니다)
-CHROMA_DB_DIR = "./chroma_db" 
+CHROMA_DB_DIR = get_chroma_db_dir()
 
 # =========================================================================
 # 🛑 테스트할 모델 그룹 정의 (이전에 사용하신 폴더 경로들과 동일하게 설정)
@@ -103,7 +111,8 @@ def run_rag_comparison():
     
     # 1. RAG용 벡터 DB 등 로드
     try:
-        embeddings = HuggingFaceEmbeddings(model_name="jhgan/ko-sroberta-multitask")
+        print(f"Embedding model: {get_embedding_model_id()}")
+        embeddings = build_embeddings()
         # 🔥 여기서 빌드할 때 썼던 Collection Name을 정확히 적어주지 않으면 비어있는 새 컬렉션이 만들어져 검색이 안 됩니다!
         vectorstore = Chroma(
             persist_directory=CHROMA_DB_DIR, 

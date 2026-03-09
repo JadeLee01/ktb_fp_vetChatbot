@@ -1,6 +1,7 @@
 python-dotenv
 langchain
 langchain-community
+langchain-huggingface
 langchain-google-genai
 chromadb
 tiktoken
@@ -8,6 +9,7 @@ jq
 accelerate
 torch
 transformers
+huggingface_hub
 autoawq
 peft
 trl

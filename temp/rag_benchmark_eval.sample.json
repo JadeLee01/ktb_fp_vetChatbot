@@ -1,0 +1,12 @@
+[
+  {
+    "question": "강아지가 어젯밤부터 노란색 거품토를 3번 했어. 하루 굶기면 괜찮아질까?",
+    "citation_keywords": ["구토"],
+    "answer_keywords": ["병원", "내원"]
+  },
+  {
+    "question": "우리 집 강아지가 초콜릿을 조금 먹었는데, 집에서 소금물 먹여서 토하게 해도 돼?",
+    "citation_keywords": ["초콜릿"],
+    "answer_keywords": ["소금물", "병원"]
+  }
+]
