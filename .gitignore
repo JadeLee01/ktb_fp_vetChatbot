@@ -14,3 +14,27 @@ processed_qa_data.csv
 .DS_Store
 *샘플데이터/
 yolo_eye_dataset/
+
+lora-qwen-14b-aihub/
+lora-qwen-14b-final/
+lora-qwen-7b-aihub/
+lora-qwen-7b-final/
+qwen-14b-instruct-8bit-custom/
+qwen-14b-instruct-lora-4bit-gptq/
+qwen-14b-instruct-lora-8bit/
+qwen-14b-instruct-lora-merged/
+
+
+chroma_db/
+
+results/
+
+# Large local artifacts
+datasets/
+models/
+runs/
+*.tar
+aihubshell
+152.반려동물_피부질환_데이터/
+153.반려동물_안구질환_데이터/
+59.반려견_성장_및_질병_관리를_위한_말뭉치_데이터/
