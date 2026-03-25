@@ -27,8 +27,6 @@ qwen-14b-instruct-lora-merged/
 
 chroma_db/
 
-results/
-
 # Large local artifacts
 datasets/
 models/
